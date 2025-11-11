@@ -6,16 +6,22 @@ import repository.FornecedorRepository;
 import repository.MateriasRepository;
 
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Scanner;
 
 public class menuView {
 	static Scanner sc = new Scanner(System.in);
+
+	static FornecedorRepository fornecedorRepository = new FornecedorRepository();
+	static MateriasRepository materiaisRepository = new MateriasRepository();
+
 
 	public static void exibir() throws SQLException {
 		int opcao = 0;
 		do {
 			System.out.println("1 - Cadastrar Fornecedor");
 			System.out.println("2 - Cadastrar Materiais");
+			System.out.println("3 - Registrar Nota De Entrada");
 
 			System.out.println("0 - Sair");
 			opcao = sc.nextInt();
@@ -29,7 +35,7 @@ public class menuView {
 					cadastrarMaterial();
 					break;
 				case 3:
-					//registrarNotaExecucao();
+					registrarNota();
 				case 0:
 					System.out.println("Saindo...");
 					break;
@@ -46,7 +52,7 @@ public class menuView {
 		String nome;
 		String cnpj;
 
-		while(true) {
+		while (true) {
 			System.out.println("[OBRIGATORIO] Digite o nome do fornecedor: ");
 			nome = sc.nextLine();
 			if (nome.isBlank()) {
@@ -56,7 +62,7 @@ public class menuView {
 			}
 		}
 
-		while(true) {
+		while (true) {
 			System.out.println("[OBRIGATORIO] Digite o CNPJ do fornecedor: ");
 			cnpj = sc.nextLine();
 			if (cnpj.isBlank()) {
@@ -70,10 +76,10 @@ public class menuView {
 		novoFornecedor.setNome(nome);
 		novoFornecedor.setcnpj(cnpj);
 
-		try{
+		try {
 			FornecedorRepository fornecedorRepository = new FornecedorRepository();
 			fornecedorRepository.save(novoFornecedor);
-		} catch (Exception e){
+		} catch (Exception e) {
 			System.out.println("Erro ao salvar fornecedor " + e.getMessage());
 		}
 	}
@@ -85,7 +91,7 @@ public class menuView {
 		String nome;
 
 
-		while(true) {
+		while (true) {
 			System.out.println("[OBRIGATORIO] Digite o nome do material: ");
 			nome = sc.nextLine();
 			if (nome.isBlank()) {
@@ -100,10 +106,10 @@ public class menuView {
 		String unidade = sc.nextLine();
 
 		double estoque = 0.0;
-		while(true) {
+		while (true) {
 			System.out.println("Digite a quantia inicial de estoque do material: ");
 			estoque = sc.nextDouble();
-			if(estoque < 0) {
+			if (estoque < 0) {
 				System.out.println("Estoque deve ser maior ou igual a zero!");
 			} else {
 				break;
@@ -117,11 +123,69 @@ public class menuView {
 		novoMaterial.setUnidade(unidade);
 		novoMaterial.setEstoque(estoque);
 
-		try{
+		try {
 			MateriasRepository materiaisRepository = new MateriasRepository();
 			materiaisRepository.save(novoMaterial);
 		} catch (Exception e) {
 			System.out.println("Erro ao salvar material " + e.getMessage());
 		}
+	}
+
+	private static void registrarNota() {
+		System.out.println("Registrar Nota");
+		System.out.println("====================");
+
+		System.out.println("Favor, selecione o fornecedor: ");
+		List<Fornecedor> fornecedores;
+		try {
+			fornecedores = fornecedorRepository.findAll();
+
+			if (fornecedores.isEmpty()) {
+				System.out.println("Nenhum fornecedor cadastrado");
+				return;
+			}
+			for (Fornecedor fornecedor : fornecedores) {
+				System.out.println(fornecedor.getId() + " - " + fornecedor.getNome());
+			}
+		} catch (Exception e) {
+			System.out.println("Erro ao buscar fornecedores " + e.getMessage());
+			return;
+		}
+
+		Fornecedor fornecedorEscolhido = null;
+
+		// Loop until a valid supplier is chosen
+		while (fornecedorEscolhido == null) {
+			System.out.println("Digite o ID do fornecedor: ");
+			try {
+				int idFornecedor = sc.nextInt();
+				sc.nextLine(); // Consume the newline character
+
+				// Reset found supplier for this attempt
+				Fornecedor tempFornecedor = null;
+				for (Fornecedor f : fornecedores) {
+					if (f.getId() == idFornecedor) {
+						tempFornecedor = f;
+						break; // Found it, stop searching
+					}
+				}
+
+				// Check if we found a supplier
+				if (tempFornecedor != null) {
+					fornecedorEscolhido = tempFornecedor; // Success! This will break the while loop
+				} else {
+					// The input was a number, but not a valid ID
+					System.out.println("ID inválido. Por favor, escolha um ID da lista.");
+				}
+
+			} catch (java.util.InputMismatchException e) {
+				// The input was not a number
+				System.out.println("ERRO: Digite apenas números.");
+				sc.nextLine(); // Clear the invalid input from the scanner
+			}
+		} // End of while loop
+
+		System.out.println("\nFornecedor selecionado: " + fornecedorEscolhido.getNome());
+		System.out.println("================================");
 	}
 }
