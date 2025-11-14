@@ -1,11 +1,13 @@
 package view;
 
 import model.Fornecedor;
+import model.ItemNota;
 import model.Materiais;
 import repository.FornecedorRepository;
 import repository.MateriasRepository;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
@@ -154,38 +156,150 @@ public class menuView {
 
 		Fornecedor fornecedorEscolhido = null;
 
-		// Loop until a valid supplier is chosen
 		while (fornecedorEscolhido == null) {
 			System.out.println("Digite o ID do fornecedor: ");
 			try {
 				int idFornecedor = sc.nextInt();
-				sc.nextLine(); // Consume the newline character
+				sc.nextLine();
 
-				// Reset found supplier for this attempt
 				Fornecedor tempFornecedor = null;
 				for (Fornecedor f : fornecedores) {
 					if (f.getId() == idFornecedor) {
 						tempFornecedor = f;
-						break; // Found it, stop searching
+						break;
 					}
 				}
 
-				// Check if we found a supplier
 				if (tempFornecedor != null) {
-					fornecedorEscolhido = tempFornecedor; // Success! This will break the while loop
+					fornecedorEscolhido = tempFornecedor;
 				} else {
-					// The input was a number, but not a valid ID
 					System.out.println("ID inválido. Por favor, escolha um ID da lista.");
 				}
 
 			} catch (java.util.InputMismatchException e) {
-				// The input was not a number
 				System.out.println("ERRO: Digite apenas números.");
-				sc.nextLine(); // Clear the invalid input from the scanner
+				sc.nextLine();
 			}
-		} // End of while loop
+		}
 
 		System.out.println("\nFornecedor selecionado: " + fornecedorEscolhido.getNome());
 		System.out.println("================================");
+		sc.nextLine();
+
+		List<ItemNota> carrinho = new ArrayList<>();
+		List<Materiais> listaMateriais;
+
+		try{
+			listaMateriais = materiaisRepository.findAll();
+			if(listaMateriais.isEmpty()){
+				System.out.println("Nenhum material cadastrado");
+				return;
+			}
+			for(Materiais materiais : listaMateriais){
+				System.out.println(materiais.getId() + " - " + materiais.getNome());
+			}
+		} catch (SQLException e) {
+			System.out.println("Erro ao listar materiais " + e.getMessage());
+			return;
+		}while (true) {
+			System.out.println("\n--- Adicionar Item na Nota ---");
+
+			for (Materiais m : listaMateriais) {
+				System.out.println(m.getId() + " - " + m.getNome() + " (Em estoque: " + m.getEstoque() + ")");
+			}
+
+			Materiais materialEscolhido = null;
+			int idMaterial = 0;
+			while (materialEscolhido == null) {
+				System.out.println("\nDigite o ID do material:");
+				try {
+					idMaterial = sc.nextInt();
+					sc.nextLine();
+
+					for (Materiais m : listaMateriais) {
+						if (m.getId() == idMaterial) {
+							materialEscolhido = m;
+							break;
+						}
+					}
+					if (materialEscolhido == null) {
+						System.out.println("ID inválido. Escolha um ID da lista.");
+					}
+				} catch (java.util.InputMismatchException e) {
+					System.out.println("ERRO: Digite apenas números.");
+					sc.nextLine();
+				}
+			}
+			System.out.println("Material selecionado: " + materialEscolhido.getNome());
+
+
+			int quantidade = 0;
+			while (quantidade <= 0) {
+				System.out.println("Digite a quantidade:");
+				try {
+					quantidade = sc.nextInt();
+					sc.nextLine();
+					if (quantidade <= 0) {
+						System.out.println("ERRO: A quantidade deve ser maior que zero.");
+					}
+				} catch (java.util.InputMismatchException e) {
+					System.out.println("ERRO: Digite um número (ex: 10.5).");
+					sc.nextLine();
+				}
+			}
+
+			double preco = -1;
+			while (preco < 0) {
+				System.out.println("Digite o preço unitário (R$):");
+				try {
+					preco = sc.nextDouble();
+					sc.nextLine();
+					if (preco < 0) {
+						System.out.println("ERRO: O preço não pode ser negativo.");
+					}
+				} catch (java.util.InputMismatchException e) {
+					System.out.println("ERRO: Digite um número (ex: 19.99).");
+					sc.nextLine();
+				}
+			}
+
+			ItemNota item = new ItemNota();
+			item.setIdMaterial(materialEscolhido.getId());
+			item.setQuantidade(quantidade);
+			item.setPrecoUnitario(preco);
+
+			carrinho.add(item);
+			System.out.println("--- Item adicionado ao carrinho! ---");
+
+			System.out.println("\nDeseja adicionar outro item à nota? (s/n)");
+			String continuar = sc.nextLine();
+
+			if (!continuar.equalsIgnoreCase("s")) {
+				break;
+			}
+		}
+
+
+
+		System.out.println("================================");
+		System.out.println("Fechando a nota...");
+
+		if (carrinho.isEmpty()) {
+			System.out.println("Nenhum item foi adicionado. Nota cancelada.");
+			return;
+		}
+
+
+		try {
+
+
+			System.out.println("\nNOTA REGISTRADA COM SUCESSO!");
+			System.out.println("O estoque dos materiais foi atualizado.");
+
+		} catch (Exception e) {
+			System.out.println("ERRO GRAVE AO SALVAR A NOTA NO BANCO:");
+			System.out.println(e.getMessage());
+		}
 	}
-}
+
+	}
